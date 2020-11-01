@@ -1,0 +1,35 @@
+from __future__ import division
+from collections import defaultdict as ddict
+from pip._vendor.msgpack.fallback import xrange
+class NG(object):
+    def __init__(self, MAX, words=None):
+        self._max = MAX
+        self._n_range = range(1,MAX + 1)
+        self._counts = ddict(lambda: 0)
+        if words is not None:
+            self.update(words)
+    def update(self, words):
+        self._counts[()] += len(words)
+        for i, word in enumerate(words):
+            for n in self._n_range:
+                if i + n <= len(words):
+                    ng_range = xrange(i, i + n)
+                    ng = [words[j] for j in ngram_range]
+                    self._counts[tuple(ng)] += 1
+    def probability(self, words):
+        if len(words) <= self._max:
+            return self._probability(words)
+        else:
+            prob = 1
+            for i in xrange(len(words) - self._max + 1):
+                ng = words[i:i + self._max]
+                prob *= self._probability(ng)
+            return prob
+    def _probability(self, ng):
+        ng = tuple(ngram)
+        ng_count = self._counts[ng]
+        prefix_count = self._counts[ng[:-1]]
+        if ng_count and prefix_count:
+            return ng_count / prefix_count
+        else:
+            return 0.0
