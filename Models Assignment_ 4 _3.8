@@ -1,0 +1,68 @@
+from __future__ import division
+from collections import defaultdict as ddict
+import itertools
+import random
+from pip._vendor.msgpack.fallback import xrange
+
+class NG(object):
+    def __init__(self, MAX, words=None):
+        self._max = MAX
+        self._range = range(1,MAX+ 1)
+        self._counts = ddict(lambda: 0)
+        if words is not None:
+            self.update(words)
+
+    def update(self, words):
+        self._counts[()] += len(words)
+
+        for i, word in enumerate(words):
+            for n in self._range:
+                if i + n <= len(words):
+                    ng_range = xrange(i, i + n)
+                    ng = [words[j] for j in ng_range]
+                    self._counts[tuple(ng)] += 1
+    def probability(self, words):
+        if len(words) <= self._max:
+            return self._probability(words)
+        else:
+            prob = 1
+            for i in xrange(len(words) - self._max + 1):
+                ng = words[i:i + self._max]
+                prob *= self._probability(ng)
+            return prob
+    def _probability(self, ngram):
+        ngram = tuple(ngram)
+        ngram_count = self._counts[ngram]
+        prefix_count = self._counts[ngram[:-1]]
+        if ngram_count and prefix_count:
+            return ngram_count / prefix_count
+        else:
+            return 0.0
+
+    def generate(self, n_words):
+        ng = iter(self._counts)
+        unigrams = [x for x in ng if len(x) == 1]
+        while True:
+            try:
+                return self._generate(n_words, unigrams)
+            except RuntimeError:
+                pass
+
+    def _generate(self, n_words, unigrams):
+        words = []
+        for i in itertools.repeat(self._max):
+            if i == 1:
+                prefix = ()
+            else:
+                prefix = tuple(words[-i + 1:])
+            threshold = random.random()
+            total = 0.0
+            for unigram in unigrams:
+                total += self._probability(prefix + unigram)
+                if total >= threshold:
+                    words.extend(unigram)
+                    break
+            if len(words) == n_words:
+                return words
+            if total == 0.0:
+                raise RuntimeError('impossible sequence')
